@@ -2510,8 +2510,8 @@ export function renderPosiblesProblemasAccordion(container, activeItem, navOptio
             // Tarjeta para agregar o vincular problema sin borde discontinuo
             const addPysCard = document.createElement("div");
             addPysCard.className = "card card-create-pys-assoc";
-            addPysCard.style.cssText = "width: 140px; height: 180px; padding: 10px; margin: 0;";
-            addPysCard.innerHTML = `<i class="fa-solid fa-plus" style="font-size: 2rem; margin-bottom: 8px;"></i> <span style="font-size: 0.85rem; font-weight: 600; text-align: center;">Agregar Problema</span>`;
+            addPysCard.style.cssText = "width: 140px; height: 120px; padding: 8px; margin: 0;";
+            addPysCard.innerHTML = `<i class="fa-solid fa-plus" style="font-size: 1.5rem; margin-bottom: 6px;"></i> <span style="font-size: 0.8rem; font-weight: 600; text-align: center;">Agregar Problema</span>`;
             addPysCard.onclick = () => openAssociateExistingProblemModal(activeItem);
             singleCardContainer.appendChild(addPysCard);
 
@@ -2533,8 +2533,8 @@ export function renderPosiblesProblemasAccordion(container, activeItem, navOptio
             // Tarjeta al final del carrusel para agregar o vincular problema
             const addPysCard = document.createElement("div");
             addPysCard.className = "card card-create-pys-assoc";
-            addPysCard.style.cssText = "flex: 0 0 140px; height: 180px; padding: 10px; margin-right: 20px;";
-            addPysCard.innerHTML = `<i class="fa-solid fa-plus" style="font-size: 2rem; margin-bottom: 8px;"></i> <span style="font-size: 0.85rem; font-weight: 600; text-align: center;">Agregar Problema</span>`;
+            addPysCard.style.cssText = "flex: 0 0 140px; width: 140px; height: 120px; padding: 8px; margin-right: 20px;";
+            addPysCard.innerHTML = `<i class="fa-solid fa-plus" style="font-size: 1.5rem; margin-bottom: 6px;"></i> <span style="font-size: 0.8rem; font-weight: 600; text-align: center;">Agregar Problema</span>`;
             addPysCard.onclick = () => openAssociateExistingProblemModal(activeItem);
             carouselTrack.appendChild(addPysCard);
 
@@ -6801,14 +6801,28 @@ export function openSearchVehicleForPysAssociationModal(problemId, onAssociated,
 
     const content = document.createElement("div");
     content.className = "info-modal-content";
-    content.style.maxWidth = "480px";
+    content.style.maxWidth = "520px";
 
     content.innerHTML = `
         <span class="info-close-btn">&times;</span>
-        <h2><i class="fa-solid fa-car"></i> Asociar Modelo a Problema</h2>
+        <h2><i class="fa-solid fa-car"></i> Vincular Modelos a Problema</h2>
+        <p style="font-size:0.85rem; color:var(--text-disabled); margin:4px 0 10px 0;">Busca y selecciona uno o varios modelos existentes para relacionarlos con este problema.</p>
+
         <div style="margin-top:10px;">
-            <input type="text" id="assoc-search-input" placeholder="Buscar por Marca o Modelo..." class="dev-input" style="width:100%; padding:8px; box-sizing:border-box;">
-            <div id="assoc-search-results" style="max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin-top:10px;"></div>
+            <input type="text" id="assoc-search-input" placeholder="Buscar por Marca, Modelo, Versión o Años..." class="dev-input" style="width:100%; padding:8px; box-sizing:border-box;">
+            <div id="assoc-search-results" style="max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin-top:8px;"></div>
+        </div>
+
+        <div style="margin-top:14px; border-top:1px solid var(--border-color); padding-top:10px;">
+            <label style="font-size:0.85rem; font-weight:600; color:var(--text-color);">Modelos seleccionados para vincular:</label>
+            <div id="assoc-selected-models-list" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; min-height:30px;">
+                <span id="assoc-no-selected-msg" style="font-size:0.8rem; color:var(--text-disabled); font-style:italic;">Ningún modelo seleccionado aún.</span>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+            <button type="button" id="btn-cancel-pys-association" class="btn btn-secondary">Cancelar</button>
+            <button type="button" id="btn-save-pys-associations" class="btn btn-primary" disabled>Guardar Vinculación</button>
         </div>
     `;
 
@@ -6817,11 +6831,45 @@ export function openSearchVehicleForPysAssociationModal(problemId, onAssociated,
 
     const closeModal = () => modal.remove();
     content.querySelector(".info-close-btn").onclick = closeModal;
+    content.querySelector("#btn-cancel-pys-association").onclick = closeModal;
 
     const input = content.querySelector("#assoc-search-input");
     const resultsContainer = content.querySelector("#assoc-search-results");
+    const selectedListContainer = content.querySelector("#assoc-selected-models-list");
+    const saveBtn = content.querySelector("#btn-save-pys-associations");
 
-    const excludedIds = new Set((alreadyAssociatedIds || []).map(String));
+    const alreadyLinkedSet = new Set((alreadyAssociatedIds || []).map(String));
+    const provisionalSelectedSet = new Set();
+
+    function renderProvisionalBadges() {
+        selectedListContainer.innerHTML = '';
+        const { catalogData } = getState();
+        const cortes = (catalogData && catalogData.cortes) ? catalogData.cortes : [];
+
+        if (provisionalSelectedSet.size === 0) {
+            selectedListContainer.innerHTML = '<span id="assoc-no-selected-msg" style="font-size:0.8rem; color:var(--text-disabled); font-style:italic;">Ningún modelo seleccionado aún.</span>';
+            saveBtn.disabled = true;
+            return;
+        }
+
+        saveBtn.disabled = false;
+        provisionalSelectedSet.forEach(vId => {
+            const v = cortes.find(c => String(c.id) === String(vId));
+            if (!v) return;
+
+            const tag = document.createElement("div");
+            tag.style.cssText = "display: inline-flex; align-items: center; gap: 6px; background: var(--accent-color, #007bff); color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 500;";
+            const yearRange = (v.anoHasta && String(v.anoHasta) !== String(v.anoDesde)) ? `${v.anoDesde}-${v.anoHasta}` : `${v.anoDesde}`;
+            tag.innerHTML = `<span>${v.marca} ${v.modelo} (${yearRange})</span> <i class="fa-solid fa-xmark" style="cursor: pointer; margin-left: 2px;"></i>`;
+
+            tag.querySelector("i").onclick = () => {
+                provisionalSelectedSet.delete(vId);
+                renderProvisionalBadges();
+                if (input.value.trim()) input.oninput();
+            };
+            selectedListContainer.appendChild(tag);
+        });
+    }
 
     input.oninput = () => {
         const query = input.value.toLowerCase().trim();
@@ -6831,17 +6879,43 @@ export function openSearchVehicleForPysAssociationModal(problemId, onAssociated,
         const { catalogData } = getState();
         const cortes = (catalogData && catalogData.cortes) ? catalogData.cortes : [];
 
-        // Tarea 9.1: Excluir vehículos que ya están asociados al problema
         const matches = cortes.filter(c => {
-            if (excludedIds.has(String(c.id))) return false;
-            return `${c.marca} ${c.modelo} ${c.versionesAplicables || ''}`.toLowerCase().includes(query);
-        }).slice(0, 8);
+            const cId = String(c.id);
+            if (alreadyLinkedSet.has(cId)) return false;
+            if (provisionalSelectedSet.has(cId)) return false;
+
+            const marca = String(c.marca || '').toLowerCase();
+            const modelo = String(c.modelo || '').toLowerCase();
+            const version = Array.isArray(c.versionesAplicables)
+                ? c.versionesAplicables.join(' ').toLowerCase()
+                : String(c.versionesAplicables || '').toLowerCase();
+            const encendido = String(c.tipoEncendido || '').toLowerCase();
+            const anoDesde = String(c.anoDesde || '');
+            const anoHasta = String(c.anoHasta || '');
+            const yearStr = `${anoDesde} ${anoHasta}`.toLowerCase();
+
+            return (
+                marca.includes(query) ||
+                modelo.includes(query) ||
+                version.includes(query) ||
+                encendido.includes(query) ||
+                yearStr.includes(query) ||
+                `${marca} ${modelo}`.includes(query) ||
+                `${marca} ${modelo} ${version}`.includes(query)
+            );
+        }).slice(0, 10);
+
+        if (matches.length === 0) {
+            resultsContainer.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--text-disabled); font-size: 0.85rem;">No se encontraron modelos disponibles para vincular.</div>';
+            return;
+        }
 
         matches.forEach(v => {
             const itemDiv = document.createElement("div");
-            itemDiv.style.cssText = "padding: 6px; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 0.85em; display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box;";
+            itemDiv.style.cssText = "padding: 6px 8px; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 0.85em; display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; border-radius: 4px; transition: background-color 0.2s;";
+            itemDiv.onmouseenter = () => itemDiv.style.backgroundColor = "rgba(0,123,255,0.08)";
+            itemDiv.onmouseleave = () => itemDiv.style.backgroundColor = "transparent";
 
-            // Requisito 1: [Imagen del vehículo] [Versión de equipamiento o tipo de encendido] [Rango de años]
             const versionOrIgnition = (v.versionesAplicables && v.versionesAplicables.trim()) ? v.versionesAplicables.trim() : (v.tipoEncendido || '-');
             const yearRange = (v.anoHasta && String(v.anoHasta) !== String(v.anoDesde)) ? `${v.anoDesde} - ${v.anoHasta}` : `${v.anoDesde}`;
 
@@ -6854,24 +6928,62 @@ export function openSearchVehicleForPysAssociationModal(problemId, onAssociated,
                     <span style="color:var(--text-disabled); font-size:0.9em;">|</span>
                     <span>${yearRange}</span>
                 </span>
+                <i class="fa-solid fa-plus-circle" style="color:var(--accent-color); font-size:1.1rem; flex-shrink:0;"></i>
             `;
 
             itemDiv.onclick = () => {
-                closeModal();
-                openConfirmVehicleForPysModal(v, async (confirmedVehicle) => {
-                    try {
-                        const res = await routeAction('addVehicleToProblem', { problemId, vehicleId: confirmedVehicle.id });
-                        if (res.status === 'success') {
-                            mostrarNotificacion("Vehículo vinculado correctamente", "success");
-                            if (typeof onAssociated === 'function') onAssociated(res.modelosAsociados);
-                        }
-                    } catch (e) {
-                        showGlobalError("Error al vincular vehículo: " + e.message);
-                    }
+                openConfirmVehicleForPysModal(v, (confirmedVehicle) => {
+                    provisionalSelectedSet.add(String(confirmedVehicle.id));
+                    renderProvisionalBadges();
+                    input.value = '';
+                    resultsContainer.innerHTML = '';
+                    input.focus();
                 });
             };
             resultsContainer.appendChild(itemDiv);
         });
+    };
+
+    saveBtn.onclick = async () => {
+        if (provisionalSelectedSet.size === 0) return;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+        try {
+            const idsToLink = Array.from(provisionalSelectedSet);
+            let finalUpdatedList = Array.from(alreadyLinkedSet);
+
+            for (const vId of idsToLink) {
+                const res = await routeAction('addVehicleToProblem', { problemId, vehicleId: vId });
+                if (res && res.status === 'success' && Array.isArray(res.modelosAsociados)) {
+                    finalUpdatedList = res.modelosAsociados;
+                }
+            }
+
+            mostrarNotificacion("Modelos vinculados correctamente al problema.", "success");
+            closeModal();
+
+            if (typeof onAssociated === 'function') {
+                onAssociated(finalUpdatedList);
+            }
+
+            const panel = document.getElementById("detalleCompleto");
+            if (panel) {
+                const { catalogData } = getState();
+                const cortes = (catalogData && catalogData.cortes) ? catalogData.cortes : [];
+                idsToLink.forEach(vId => {
+                    const linkedVehicle = cortes.find(c => String(c.id) === String(vId));
+                    if (linkedVehicle) {
+                        renderPosiblesProblemasAccordion(panel, linkedVehicle);
+                    }
+                });
+            }
+        } catch (e) {
+            console.error("Error al vincular modelos:", e);
+            showGlobalError("Error al vincular modelos: " + e.message);
+            saveBtn.disabled = false;
+            saveBtn.innerText = "Guardar Vinculación";
+        }
     };
 }
 
@@ -7219,90 +7331,7 @@ export function openPysDetailModal(item, navOptions = {}, inEditModePys = false)
         cont.appendChild(videoBlock);
     }
 
-    /* TAREA 11 (12.4): CARRUSEL DE MODELOS EN DETALLE DE PROBLEMAS Y SOLUCIONES */
-    // Carrusel de Modelos de Vehículos Relacionados
-    const { catalogData } = getState();
-    const cortes = (catalogData && catalogData.cortes) ? catalogData.cortes : [];
-    const modelosAsociadosIds = Array.isArray(item.modelosAsociados) ? item.modelosAsociados : [];
-    // REVISIÓN IV: Desvinculación y gestión de modelos en problemas restringida exclusivamente al desarrollador
-    const canEditPys = userRole === 'Desarrollador';
 
-    // Tarea 9.3 (Requisito 8.2): Si el modal del problema se abrió desde un vehículo, ocultar en ese contexto el carrusel de modelos para evitar ciclos
-    // REVISIÓN IV ANEXO: El carrusel de vehículos relacionados y la tarjeta de agregar (+) deben estar disponibles para todos los usuarios
-    const isFromVehicle = navOptions && navOptions.originModal === 'vehicle';
-    if (!isFromVehicle) {
-        const carouselSection = document.createElement("div");
-        carouselSection.style.cssText = "margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;";
-        carouselSection.innerHTML = `<h4 style="margin: 0 0 10px 0; font-size: 1rem;"><i class="fa-solid fa-car"></i> Vehículos Relacionados:</h4>`;
-
-        const track = document.createElement("div");
-        track.style.cssText = "display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none;";
-
-        modelosAsociadosIds.forEach(vId => {
-            const v = cortes.find(c => String(c.id) === String(vId));
-            if (!v) return;
-
-            const cardWrapper = document.createElement("div");
-            cardWrapper.style.cssText = "position: relative; display: inline-block;";
-
-            const card = crearCardVehiculo(v, true);
-            card.onclick = () => mostrarDetalleModal(v, false, {
-                originModal: 'pys',
-                fromOriginModal: {
-                    type: 'pys',
-                    item: item,
-                    navOptions: navOptions || {}
-                }
-            });
-            cardWrapper.appendChild(card);
-
-            if (canEditPys) {
-                const removeBtn = document.createElement("button");
-                removeBtn.title = "Eliminar relación con este modelo";
-                removeBtn.innerHTML = "&times;";
-                removeBtn.style.cssText = "position: absolute; top: 4px; right: 4px; background: rgba(220, 53, 69, 0.9); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.3);";
-                removeBtn.onclick = async (e) => {
-                    e.stopPropagation();
-                    if (!confirm(`¿Deseas desvincular el modelo "${v.marca} ${v.modelo}" de este problema?`)) return;
-                    removeBtn.disabled = true;
-                    try {
-                        const res = await routeAction('removeVehicleFromProblem', {
-                            problemId: item.id_problem,
-                            vehicleId: v.id,
-                            userRole
-                        });
-                        if (res && res.status === 'success') {
-                            item.modelosAsociados = res.modelosAsociados || item.modelosAsociados.filter(id => String(id) !== String(v.id));
-                            cardWrapper.remove();
-                            mostrarNotificacion("Relación retirada correctamente.", "success");
-                        }
-                    } catch(err) {
-                        showGlobalError("Error al retirar relación: " + err.message);
-                        removeBtn.disabled = false;
-                    }
-                };
-                cardWrapper.appendChild(removeBtn);
-            }
-
-            track.appendChild(cardWrapper);
-        });
-
-        // Tarjeta «+ Agregar» al final del carrusel disponible para todos los usuarios (Estandarización visual sin bordes discontinuos)
-        const addCard = document.createElement("div");
-        addCard.className = "card card-create-vehicle-assoc";
-        addCard.style.cssText = "flex: 0 0 120px; min-height: 100px; padding: 8px; margin: 0 5px;";
-        addCard.innerHTML = `<i class="fa-solid fa-plus" style="font-size: 1.5rem; margin-bottom: 6px;"></i> <span style="font-size: 0.8rem; font-weight: 600; text-align: center;">Agregar Modelo</span>`;
-        addCard.onclick = () => {
-            openSearchVehicleForPysAssociationModal(item.id_problem, (updatedList) => {
-                item.modelosAsociados = updatedList;
-                openPysDetailModal(item, navOptions);
-            }, item.modelosAsociados || []);
-        };
-        track.appendChild(addCard);
-
-        carouselSection.appendChild(track);
-        cont.appendChild(carouselSection);
-    }
 
     if (item.Colaborador) {
         const colDiv = document.createElement("div");
@@ -7344,6 +7373,98 @@ export function openPysDetailModal(item, navOptions = {}, inEditModePys = false)
             }
         };
         cont.appendChild(addPrevBtn);
+    }
+
+    /* PRIORIDAD 1: CARRUSEL DE VEHÍCULOS RELACIONADOS EN LA ÚLTIMA PARTE BAJA DEL MODAL DE DETALLE DE PYS */
+    // Carrusel de Modelos de Vehículos Relacionados
+    const { catalogData } = getState();
+    const cortes = (catalogData && catalogData.cortes) ? catalogData.cortes : [];
+    const modelosAsociadosIds = Array.isArray(item.modelosAsociados) ? item.modelosAsociados : [];
+    const canEditPys = userRole === 'Desarrollador';
+
+    // Tarea 9.3: Si el modal del problema se abrió desde un vehículo, ocultar en ese contexto el carrusel de modelos para evitar ciclos
+    const isFromVehicle = navOptions && navOptions.originModal === 'vehicle';
+    if (!isFromVehicle) {
+        const existingVehicles = modelosAsociadosIds
+            .map(vId => cortes.find(c => String(c.id) === String(vId)))
+            .filter(Boolean);
+
+        // REQUISITO PRIORIDAD 1 (1.3): La tarjeta «Agregar vehículo» y el carrusel deben mostrarse ÚNICAMENTE cuando el problema ya tenga al menos un vehículo relacionado
+        // No mostrar esta tarjeta ni carrusel en problemas marcados como generales
+        if (existingVehicles.length > 0) {
+            const carouselSection = document.createElement("div");
+            carouselSection.id = "pys-related-vehicles-section";
+            carouselSection.style.cssText = "margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 15px;";
+            carouselSection.innerHTML = `<h4 style="margin: 0 0 10px 0; font-size: 1rem;"><i class="fa-solid fa-car"></i> Vehículos Relacionados:</h4>`;
+
+            const track = document.createElement("div");
+            track.id = "pys-related-vehicles-track";
+            track.style.cssText = "display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none;";
+
+            existingVehicles.forEach(v => {
+                const cardWrapper = document.createElement("div");
+                cardWrapper.style.cssText = "position: relative; display: inline-block; flex: 0 0 140px; width: 140px;";
+
+                const card = crearCardVehiculo(v, true);
+                card.style.cssText = "width: 140px; max-width: 140px; height: 120px; animation: none; opacity: 1;";
+                card.onclick = () => mostrarDetalleModal(v, false, {
+                    originModal: 'pys',
+                    fromOriginModal: {
+                        type: 'pys',
+                        item: item,
+                        navOptions: navOptions || {}
+                    }
+                });
+                cardWrapper.appendChild(card);
+
+                if (canEditPys) {
+                    const removeBtn = document.createElement("button");
+                    removeBtn.title = "Eliminar relación con este modelo";
+                    removeBtn.innerHTML = "&times;";
+                    removeBtn.style.cssText = "position: absolute; top: 4px; right: 4px; background: rgba(220, 53, 69, 0.9); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.3);";
+                    removeBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (!confirm(`¿Deseas desvincular el modelo "${v.marca} ${v.modelo}" de este problema?`)) return;
+                        removeBtn.disabled = true;
+                        try {
+                            const res = await routeAction('removeVehicleFromProblem', {
+                                problemId: item.id_problem,
+                                vehicleId: v.id,
+                                userRole
+                            });
+                            if (res && res.status === 'success') {
+                                item.modelosAsociados = res.modelosAsociados || item.modelosAsociados.filter(id => String(id) !== String(v.id));
+                                mostrarNotificacion("Relación retirada correctamente.", "success");
+                                openPysDetailModal(item, navOptions);
+                            }
+                        } catch(err) {
+                            showGlobalError("Error al retirar relación: " + err.message);
+                            removeBtn.disabled = false;
+                        }
+                    };
+                    cardWrapper.appendChild(removeBtn);
+                }
+
+                track.appendChild(cardWrapper);
+            });
+
+            // Tarjeta «Agregar vehículo» al final del carrusel, después de los vehículos relacionados
+            const addCard = document.createElement("div");
+            addCard.className = "card card-create-vehicle-assoc";
+            addCard.id = "btn-pys-add-vehicle-card";
+            addCard.style.cssText = "flex: 0 0 140px; width: 140px; height: 120px; padding: 8px; margin: 0 5px;";
+            addCard.innerHTML = `<i class="fa-solid fa-plus" style="font-size: 1.5rem; margin-bottom: 6px;"></i> <span style="font-size: 0.8rem; font-weight: 600; text-align: center;">Agregar Vehículo</span>`;
+            addCard.onclick = () => {
+                openSearchVehicleForPysAssociationModal(item.id_problem, (updatedList) => {
+                    item.modelosAsociados = updatedList;
+                    openPysDetailModal(item, navOptions);
+                }, item.modelosAsociados || []);
+            };
+            track.appendChild(addCard);
+
+            carouselSection.appendChild(track);
+            cont.appendChild(carouselSection);
+        }
     }
 
     if (modalDetalle) {

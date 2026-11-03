@@ -2136,3 +2136,13 @@ BLOQUE 8: SISTEMA DE SUBIDA DIRECTA DE VÍDEOS A YOUTUBE DESDE GPSPEDIA CON APRO
   2. Ocultamiento total del acordeón de problemas relacionados al abrir un vehículo desde el modal de un problema, permitiendo su visualización normal en aperturas independientes.
   3. Pila de navegación contextual (modalNavStack) para retornar automáticamente al modal y estado de origen al cerrar sin ciclos infinitos.
   4. Limpieza determinista de la pila al cerrar completamente todos los modales.
+
+---
+
+### REVISIÓN VII: Correcciones del carrusel de vehículos relacionados, formulario de vinculación y dimensiones de tarjetas en GPSpedia [X]
+- **Requisitos obligatorios cumplidos:**
+  1. *Carrusel de vehículos relacionados en modal de Problemas y Soluciones:* Ubicado al final absoluto de la parte baja del modal tras colaborador y botones de acción. Muestra los modelos asociados con tarjetas del catálogo y navegación directa. Condicionado para mostrarse únicamente si el problema cuenta con al menos un vehículo relacionado (no se muestra en problemas generales).
+  2. *Tarjeta «Agregar vehículo»:* Ubicada al final del carrusel de vehículos relacionados, visible exclusivamente cuando el problema ya tenga al menos un modelo relacionado (oculta en problemas generales).
+  3. *Formulario para relacionar modelos con un problema:* Permite búsqueda predictiva amplia por marca, modelo, versión de equipamiento, tipo de encendido y rango de años. Exclusión rigurosa tanto de vehículos ya relacionados como de los provisionalmente seleccionados. Admite selección múltiple con confirmación contextual previa y lista provisional de badges interactivos removibles, sin límites artificiales y sin crear duplicados.
+  4. *Sincronización reactiva bidireccional:* Al guardar las relaciones, se actualiza inmediatamente el carrusel de modelos en el modal de detalle del problema y el acordeón 'Posibles problemas' en la ficha técnica del vehículo correspondiente.
+  5. *Igualación de dimensiones de tarjetas especiales:* Corregido el exceso de altura (180px) en `.card-create-pys-assoc` y `.card-create-vehicle-assoc`, normalizando sus dimensiones a 140px de ancho y 120px de alto, idénticas a las tarjetas normales (`.card`) del carrusel tanto en versión móvil como de escritorio.

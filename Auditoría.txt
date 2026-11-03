@@ -1350,3 +1350,31 @@ Riesgos y mitigaciones:
 - Riesgo de exploración descontrolada en Google Drive: mitigado restringiendo la búsqueda en código exclusivamente al ID `1-8QqhS-wtEFFwyBG8CmnEOp5i8rxSM-2` (carpeta "Cortes") y sus subcarpetas.
 - Respaldos creados: `ui.js.bak`, `main.js.bak`, `Services/admin.js.bak`, `api-config.js.bak`, `index.html.bak`.
 ================================================================================
+
+================================================================================
+AUDITORÍA: PRIORIDAD 3 - IGUALAR DIMENSIONES DE LAS TARJETAS ESPECIALES DE LOS CARRUSELES
+Fecha: 2026-11-03
+Archivos involucrados: ui.js, style.css
+
+Diagnóstico y Hallazgos:
+1. Tarjeta «Agregar problema» (.card-create-pys-assoc):
+   - En ui.js (línea 2513 y 2536), addPysCard tenía estilos en línea con:
+     * 'width: 140px; height: 180px;' (para caso único)
+     * 'flex: 0 0 140px; height: 180px; padding: 10px; margin-right: 20px;' (para carrusel)
+   - Esto provocaba una altura fija de 180px que superaba sustancialmente a las tarjetas normales de problemas (cuya altura natural con imagen y overlay es de 120px a 140px).
+   - Solución:
+     * En ui.js, remover 'height: 180px' y hacer que .card-create-pys-assoc use 'height: 120px;' y 'flex: 0 0 140px; width: 140px;', con icono y texto proporcionados para alinearse con exactitud a las tarjetas normales del carrusel.
+     * En style.css, definir las dimensiones de .card-create-pys-assoc como 'width: 140px; min-width: 140px; max-width: 140px; height: 120px; min-height: 120px; max-height: 120px;'.
+
+2. Tarjeta «Agregar vehículo» (.card-create-vehicle-assoc):
+   - En ui.js (línea 7445), addCard tenía:
+     * 'flex: 0 0 120px; min-height: 100px; padding: 8px; margin: 0 5px;'
+     mientras que las tarjetas de vehículos normales (.card) usan 'flex: 0 0 140px;' o 'max-width: 140px; width: 140px; height: 120px;' y la imagen 'height: 120px;'.
+   - Solución:
+     * En ui.js, configurar para que addCard tenga 'flex: 0 0 140px; width: 140px; height: 120px; margin: 0 5px;' igual que las tarjetas de modelos.
+     * En style.css, definir las dimensiones de .card-create-vehicle-assoc como 'width: 140px; min-width: 140px; max-width: 140px; height: 120px; min-height: 120px; max-height: 120px;'.
+
+Riesgos y mitigaciones:
+- Riesgo de desalineación o desbordamiento: al homogeneizar a width: 140px y height: 120px (las medidas estándar de .card en los carruseles), ambas tarjetas especiales se alinean milimétricamente con las tarjetas normales.
+- Respaldos creados: ui.js.bak y style.css.bak.
+================================================================================

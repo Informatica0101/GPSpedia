@@ -1819,3 +1819,19 @@ Fecha: 2026-11-03
 - index.html:
   * Incorporados los botones y modales `#replaced-images-modal` y `#audit-drive-modal` dentro de `#dev-tools-modal`.
 ================================================================================
+
+================================================================================
+REGISTRO DE CAMBIOS: CORRECCIONES DE CARRUSEL DE VEHÍCULOS RELACIONADOS, FORMULARIO DE VINCULACIÓN Y DIMENSIONES DE TARJETAS
+Fecha: 2026-11-03
+
+- ui.js:
+  * Líneas 6800-6985: En openSearchVehicleForPysAssociationModal(), se rediseñó el diálogo de vinculación permitiendo búsqueda amplia por marca, modelo, versión de equipamiento, tipo de encendido y rango de años.
+  * Líneas 6835-6880: Incorporado selector múltiple con lista provisional de modelos (#assoc-selected-models-list), tags interactivos con botón para deseleccionar y exclusión estricta en tiempo real de vehículos ya relacionados y vehículos seleccionados provisionalmente.
+  * Líneas 6945-6985: En el botón 'Guardar Vinculación', envío secuencial seguro de todas las asociaciones mediante 'addVehicleToProblem', actualización reactiva del carrusel del problema y refresco inmediato del acordeón de problemas relacionados en el modal de detalle del vehículo.
+  * Líneas 7260-7380: En openPysDetailModal(), reubicado el carrusel de vehículos relacionados (#pys-related-vehicles-section) al final absoluto del modal (última parte baja), tras colaborador y botones contextuales de solución y prevención.
+  * Líneas 7390-7460: Condicionada la renderización del carrusel y de la tarjeta «Agregar vehículo» (#btn-pys-add-vehicle-card): se muestran exclusivamente cuando el problema cuenta con al menos un vehículo relacionado registrado en el catálogo, excluyéndose en problemas generales.
+  * Líneas 2510-2540 y 7450-7460: Eliminadas las alturas fijas excesivas (180px) de las tarjetas especiales .card-create-pys-assoc y .card-create-vehicle-assoc, configurando dimensiones uniformes de 140px de ancho por 120px de alto con padding de 8px para una alineación exacta con las tarjetas normales (.card).
+
+- style.css:
+  * Líneas 1565-1580: Definidas las reglas explícitas de ancho y altura para .card-create-pys-assoc y .card-create-vehicle-assoc con width: 140px, height: 120px, animation: none y opacity: 1, eliminando discrepancias dimensionales y desalineaciones de carruseles en dispositivos móviles y de escritorio.
+================================================================================
